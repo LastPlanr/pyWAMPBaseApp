@@ -3,13 +3,10 @@ try:
 except ImportError:
     from distutils.core import setup
 
-version = '0.1.0'
+version = '0.1.1'
 
 with open('requirements.txt') as requirements_file:
     requires = [item for item in requirements_file]
-
-with open('README.md') as f:
-    readme = f.read()
 
 with open('LICENSE') as f:
     license = f.read()
@@ -18,7 +15,7 @@ setup(
     name='kbaseapp',
     version=version,
     description="Utility classes for creating WAMP enabled applications",
-    long_description=readme,
+    long_description="",
     author='Cléber Zavadniak',
     author_email='contato@cleber.solutions',
     url='https://github.com/cleber-solutions/pyWAMPBaseApp',
