@@ -8,20 +8,29 @@ class App:
 
         self.init(*args, **kwargs)
 
+        self.topic = None
+
     def init(self, *args, **kwargs):
         pass
+
+    def publish(self, message):
+        if self.topic:
+            self.wamp_app.publish(self.topic, message)
 
     def advance_progress_print(self, step_name=None):
         print(self.current_step, self.total_steps_count, step_name or '')
         self.current_step += 1
 
     def advance_progress_send(self, step_name=None):
+        progress_data = (self.current_step, self.total_steps_count, step_name)
         try:
-            self.details.progress((self.current_step, self.total_steps_count, step_name))
+            self.details.progress(progress_data)
         except Exception as ex:
             print(ex)
             self.advance_progress = self.advance_progress_print
             return self.advance_progress(step_name)
+
+        self.publish(progress_data)
 
         self.current_step += 1
 
