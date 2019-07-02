@@ -3,7 +3,7 @@ class App:
         self.wamp_app = wamp_app
 
         self.details = None
-        self.current_step = 0
+        self.current_step = 1
         self.total_steps_count = None
 
         self.init(*args, **kwargs)
