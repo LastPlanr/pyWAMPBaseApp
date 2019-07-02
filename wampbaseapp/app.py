@@ -31,7 +31,11 @@ class App:
             return self.advance_progress(step_name)
 
         self.publish(progress_data)
+        self.current_step += 1
 
+    def advance_progress_notify(self, step_name):
+        progress_data = (self.current_step, self.total_steps_count, step_name)
+        self.publish(progress_data)
         self.current_step += 1
 
     def advance_progress(self, step_name=None):
