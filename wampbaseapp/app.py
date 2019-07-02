@@ -46,3 +46,8 @@ class App:
             self.advance_progress = self.advance_progress_print
 
         return self.advance_progress(step_name)
+
+    def inform_finish(self, step_name=None):
+        self.current_step = 0
+        self.advance_progress(step_name)
+        self.current_step = 0
