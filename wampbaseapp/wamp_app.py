@@ -1,5 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import sys
 
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
@@ -27,6 +27,7 @@ class WampApp(ApplicationSession):
         self.init()
         self.methods = {}
         self.thread_pool_executor = ThreadPoolExecutor()
+        self.tasks_queue = asyncio.Queue()
 
         for thing_name in dir(self):
             thing = getattr(self, thing_name)
@@ -89,6 +90,21 @@ class WampApp(ApplicationSession):
         self.loop = asyncio.get_event_loop()
 
         await self.ready()
+        await self.process_parallel_queue()
+
+    async def process_parallel_queue(self):
+        while True:
+            try:
+                method, args, kwargs = await self.async_run(self.tasks_queue.get_nowait)
+            except asyncio.QueueEmpty:
+                await asyncio.sleep(5)
+                continue
+
+            await method(*args, **kwargs)
+
+    async def parallel_process(self, method, *args, **kwargs):
+        task_data = (method, args, kwargs)
+        await self.tasks_queue.put(task_data)
 
     def onChallenge(self, challenge):
         secret = config('WAMPYSECRET')
