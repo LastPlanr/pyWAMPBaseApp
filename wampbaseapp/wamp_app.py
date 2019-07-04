@@ -7,6 +7,7 @@ from autobahn.wamp.auth import compute_wcs
 from autobahn.wamp.types import RegisterOptions
 from autobahn.wamp.exception import ApplicationError
 from prettyconf import config
+import ulid
 
 
 def register_method(name, **options):
@@ -20,9 +21,13 @@ def register_method(name, **options):
 class WampApp(ApplicationSession):
     PRINCIPAL = None
     METHODS_SUFFIX = ''
+    APP_NAME = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.instance_id = ulid.new().str
+        self.health_check_topic = f'system.app.{self.APP_NAME}.alive'
+
         self.exit_status = 0
         self.init()
         self.methods = {}
@@ -92,8 +97,15 @@ class WampApp(ApplicationSession):
         await self.ready()
         await self.process_parallel_queue()
 
+    async def send_health_check_signal(self):
+        if self.APP_NAME:
+            self.publish(self.health_check_topic, {
+                'alive': True
+            })
+
     async def process_parallel_queue(self):
         while True:
+            await self.send_health_check_signal()
             try:
                 method, args, kwargs = await self.async_run(self.tasks_queue.get_nowait)
             except asyncio.QueueEmpty:
