@@ -106,8 +106,13 @@ class WampApp(ApplicationSession):
             })
 
     async def process_parallel_queue(self):
+        counter = 0
         while True:
-            await self.send_health_check_signal()
+            counter += 1
+            if counter > 4:
+                await self.send_health_check_signal()
+                counter = 0
+
             try:
                 method, args, kwargs = await self.async_run(self.tasks_queue.get_nowait)
             except asyncio.QueueEmpty:
