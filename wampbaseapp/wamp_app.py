@@ -100,6 +100,8 @@ class WampApp(ApplicationSession):
     async def send_health_check_signal(self):
         if self.APP_NAME:
             self.publish(self.health_check_topic, {
+                'app': self.APP_NAME,
+                'instance_id': self.instance_id,
                 'alive': True
             })
 
