@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-version = '0.5.2'
+version = '0.5.3'
 
 with open('requirements.txt') as requirements_file:
     requires = [item for item in requirements_file]
@@ -12,7 +12,7 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='kbaseapp',
+    name='pyWAMPBaseApp',
     version=version,
     description="Utility classes for creating WAMP enabled applications",
     long_description="",
