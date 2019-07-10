@@ -94,7 +94,7 @@ class WampApp(ApplicationSession):
 
         self.loop = asyncio.get_event_loop()
 
-        await afterJoin()
+        await self.afterJoin()
         await self.process_parallel_queue()
 
     async def send_health_check_signal(self):
