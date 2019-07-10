@@ -61,7 +61,7 @@ class WampApp(ApplicationSession):
         print('onUserError:', args, ';', kwargs)
         return super().onUserError(*args, **kwargs)
 
-    async def ready(self):
+    async def afterJoin(self):
         pass
 
     async def onJoin(self, details):
@@ -94,6 +94,7 @@ class WampApp(ApplicationSession):
 
         self.loop = asyncio.get_event_loop()
 
+        await afterJoin()
         await self.process_parallel_queue()
 
     async def send_health_check_signal(self):
