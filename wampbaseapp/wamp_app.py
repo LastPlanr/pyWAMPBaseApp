@@ -70,10 +70,12 @@ class WampApp(ApplicationSession):
             if counter > 0:
                 await asyncio.sleep(5)
 
+            methods_names = []
             try:
                 for method_name, method_data in self.methods.items():
                     method, method_options = method_data
                     sufixed_name = f'{method_name}{self.METHODS_SUFFIX}'
+                    methods_names.append(sufixed_name)
 
                     if method_options:
                         options = RegisterOptions(**method_options)
@@ -84,8 +86,8 @@ class WampApp(ApplicationSession):
                 last_exception = e
                 continue
             else:
-                methods_names = '|'.join(self.methods.keys())
-                print(f"All methods registered: {methods_names}")
+                methods_names_str = '|'.join(methods_names)
+                print(f"All methods registered: {methods_names_str}")
                 break
         else:
             print(f"Could not register some methods: {last_exception}")
