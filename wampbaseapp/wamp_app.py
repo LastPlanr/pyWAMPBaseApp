@@ -84,7 +84,8 @@ class WampApp(ApplicationSession):
                 last_exception = e
                 continue
             else:
-                print("All methods registered")
+                methods_names = '|'.join(self.methods.keys())
+                print(f"All methods registered: {methods_names}")
                 break
         else:
             print(f"Could not register some methods: {last_exception}")
