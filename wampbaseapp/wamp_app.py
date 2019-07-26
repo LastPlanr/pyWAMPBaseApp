@@ -1,5 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from os import environ
 import sys
 
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
@@ -25,6 +26,7 @@ class WampApp(ApplicationSession):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.METHODS_SUFFIX = environ.get('METHODS_SUFFIX', self.METHODS_SUFFIX)
         self.instance_id = ulid.new().str
         self.health_check_topic = f'system.app.{self.APP_NAME}.alive'
 
