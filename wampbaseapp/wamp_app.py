@@ -42,7 +42,12 @@ class WampApp(ApplicationSession):
             if method_name:
                 self.methods[method_name] = (thing, thing.wamp_options)
 
+        self.post_init()
+
     def init(self):
+        pass
+
+    def post_init(self):
         pass
 
     def onOpen(self, *args, **kwargs):
