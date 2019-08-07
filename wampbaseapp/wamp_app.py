@@ -21,12 +21,16 @@ def register_method(name, **options):
 
 class WampApp(ApplicationSession):
     PRINCIPAL = None
+    METHODS_PREFIX = ''
     METHODS_SUFFIX = ''
     APP_NAME = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.METHODS_PREFIX = environ.get('METHODS_PREFIX', self.METHODS_PREFIX)
         self.METHODS_SUFFIX = environ.get('METHODS_SUFFIX', self.METHODS_SUFFIX)
+
         self.instance_id = ulid.new().str
         self.health_check_topic = f'system.app.{self.APP_NAME}.alive'
 
@@ -71,24 +75,30 @@ class WampApp(ApplicationSession):
     async def afterJoin(self):
         pass
 
+    async def register_methods(self):
+        methods_names = []
+
+        for method_name, method_data in self.methods.items():
+            method, method_options = method_data
+            name = f'{self.METHODS_PREFIX}{method_name}{self.METHODS_SUFFIX}'
+            methods_names.append(name)
+
+            if method_options:
+                options = RegisterOptions(**method_options)
+                await self.register(method, name, options)
+            else:
+                await self.register(method, name)
+
+        return methods_names
+
     async def onJoin(self, details):
         last_exception = None
         for counter in range(0, 3):
             if counter > 0:
                 await asyncio.sleep(5)
 
-            methods_names = []
             try:
-                for method_name, method_data in self.methods.items():
-                    method, method_options = method_data
-                    sufixed_name = f'{method_name}{self.METHODS_SUFFIX}'
-                    methods_names.append(sufixed_name)
-
-                    if method_options:
-                        options = RegisterOptions(**method_options)
-                        await self.register(method, sufixed_name, options)
-                    else:
-                        await self.register(method, sufixed_name)
+                methods_names = await self.register_methods()
             except ApplicationError as e:
                 last_exception = e
                 continue
