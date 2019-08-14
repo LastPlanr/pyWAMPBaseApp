@@ -1,7 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from os import environ
 import sys
+import traceback
 
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.auth import compute_wcs
@@ -28,8 +28,8 @@ class WampApp(ApplicationSession):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.METHODS_PREFIX = environ.get('METHODS_PREFIX', self.METHODS_PREFIX)
-        self.METHODS_SUFFIX = environ.get('METHODS_SUFFIX', self.METHODS_SUFFIX)
+        self.METHODS_PREFIX = config('METHODS_PREFIX', default=self.METHODS_PREFIX)
+        self.METHODS_SUFFIX = config('METHODS_SUFFIX', default=self.METHODS_SUFFIX)
 
         self.instance_id = ulid.new().str
         self.health_check_topic = f'system.app.{self.APP_NAME}.alive'
@@ -139,7 +139,15 @@ class WampApp(ApplicationSession):
                 await asyncio.sleep(5)
                 continue
 
-            await method(*args, **kwargs)
+            try:
+                await method(*args, **kwargs)
+            except Exception as ex:
+                eclass, e, etrace = sys.exc_info()
+                efile, eline, efunc, esource = traceback.extract_tb(etrace)[-1]
+                tb = ''.join(traceback.format_tb(etrace))
+
+                log_entry = f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
+                print(log_entry)
 
     async def parallel_process(self, method, *args, **kwargs):
         task_data = (method, args, kwargs)
