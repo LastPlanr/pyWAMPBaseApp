@@ -25,7 +25,7 @@ class MachineStatsMixin:
     def get_load(self):
         return psutil.getloadavg()
 
-    def await_something(self, method, limit, time_limit=60):
+    def await_something(self, method, limit, time_limit=60, lock_limit=None):
         if time_limit is None:
             wait_time = 1
         else:
@@ -38,13 +38,14 @@ class MachineStatsMixin:
                 return current_value
 
             if time_limit is not None and total_time > time_limit:
-                return current_value
+                if lock_limit is None or current_value < lock_limit:
+                    return current_value
 
             total_time += wait_time
             sleep(wait_time)
 
-    def await_memory(self, limit, time_limit=60):
-        return self.await_something(self.get_memory, limit, time_limit)
+    def await_memory(self, *args, **kwargs):
+        return self.await_something(self.get_memory, *args, **kwargs)
 
-    def await_cpu(self, limit, time_limit=60):
-        return self.await_something(self.get_cpu, limit, time_limit)
+    def await_cpu(self, *args, **kwargs):
+        return self.await_something(self.get_cpu, *args, **kwargs)
