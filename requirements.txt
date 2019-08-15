@@ -1,3 +1,4 @@
 autobahn
 prettyconf
+psutil
 ulid-py
