@@ -148,7 +148,11 @@ class WampApp(ApplicationSession):
                 tb = ''.join(traceback.format_tb(etrace))
 
                 log_entry = f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
-                print(log_entry)
+                self.parallel_queue_error(log_entry)
+
+    def parallel_queue_error(self, message):
+        print(message)
+        self.publish('sys.errors', {'message': message})
 
     async def parallel_process(self, method, *args, **kwargs):
         task_data = (method, args, kwargs)
