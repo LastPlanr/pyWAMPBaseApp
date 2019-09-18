@@ -116,7 +116,19 @@ class WampApp(ApplicationSession):
         self.loop = asyncio.get_event_loop()
 
         await self.afterJoin()
-        await self.process_parallel_queue()
+
+        while True:
+            try:
+                await self.process_parallel_queue()
+            except Exception as ex:
+                eclass, e, etrace = sys.exc_info()
+                efile, eline, efunc, esource = traceback.extract_tb(etrace)[-1]
+                tb = ''.join(traceback.format_tb(etrace))
+
+                log_entry = f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
+                self.log_error(log_entry)
+
+            await asyncio.sleep(5)
 
     async def send_health_check_signal(self):
         if self.APP_NAME:
@@ -148,9 +160,9 @@ class WampApp(ApplicationSession):
                 tb = ''.join(traceback.format_tb(etrace))
 
                 log_entry = f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
-                self.parallel_queue_error(log_entry)
+                self.log_error(log_entry)
 
-    def parallel_queue_error(self, message):
+    def log_error(self, message):
         print(message)
         self.publish('sys.errors', {'message': message})
 
