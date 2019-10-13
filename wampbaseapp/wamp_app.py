@@ -29,6 +29,7 @@ class WampApp(ApplicationSession):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.PRINCIPAL = config('PRINCIPAL', default=self.PRINCIPAL)
         self.METHODS_PREFIX = config('METHODS_PREFIX', default=self.METHODS_PREFIX)
         self.METHODS_SUFFIX = config('METHODS_SUFFIX', default=self.METHODS_SUFFIX)
 
