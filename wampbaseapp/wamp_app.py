@@ -147,11 +147,7 @@ class WampApp(ApplicationSession):
                 await self.send_health_check_signal()
                 counter = 0
 
-            try:
-                method, args, kwargs = await self.async_run(self.tasks_queue.get_nowait)
-            except asyncio.QueueEmpty:
-                await asyncio.sleep(5)
-                continue
+            method, args, kwargs = await self.tasks_queue.get()
 
             try:
                 await method(*args, **kwargs)
@@ -170,6 +166,10 @@ class WampApp(ApplicationSession):
     async def parallel_process(self, method, *args, **kwargs):
         task_data = (method, args, kwargs)
         await self.tasks_queue.put(task_data)
+
+    def sync_parallel_process(self, method, *args, **kwargs):
+        task_data = (method, args, kwargs)
+        self.tasks_queue.put_nowait(task_data)
 
     def onChallenge(self, challenge):
         secret = config('WAMPYSECRET')
