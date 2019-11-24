@@ -140,17 +140,22 @@ class WampApp(ApplicationSession):
             })
 
     async def process_parallel_queue(self):
+
         counter = 0
-        while True:
+        async def _get_next_method_and_process():
+            nonlocal counter
+
             counter += 1
             if counter > 4:
                 await self.send_health_check_signal()
                 counter = 0
 
             method, args, kwargs = await self.tasks_queue.get()
+            await method(*args, **kwargs)
 
+        while True:
             try:
-                await method(*args, **kwargs)
+                await _get_next_method_and_process()
             except Exception as ex:
                 eclass, e, etrace = sys.exc_info()
                 efile, eline, efunc, esource = traceback.extract_tb(etrace)[-1]

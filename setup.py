@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-version = '0.12.0'
+version = '0.12.1'
 
 with open('requirements.txt') as requirements_file:
     requires = [item for item in requirements_file]
