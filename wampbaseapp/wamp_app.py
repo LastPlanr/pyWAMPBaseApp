@@ -1,6 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+import logging
 import sys
 import traceback
 
@@ -10,6 +11,9 @@ from autobahn.wamp.types import RegisterOptions
 from autobahn.wamp.exception import ApplicationError
 from prettyconf import config
 import ulid
+
+
+logger = logging.getLogger(__name__)
 
 
 def register_method(name, **options):
@@ -30,8 +34,12 @@ class WampApp(ApplicationSession):
         super().__init__(*args, **kwargs)
 
         self.PRINCIPAL = config('PRINCIPAL', default=self.PRINCIPAL)
-        self.METHODS_PREFIX = config('METHODS_PREFIX', default=self.METHODS_PREFIX)
-        self.METHODS_SUFFIX = config('METHODS_SUFFIX', default=self.METHODS_SUFFIX)
+        self.METHODS_PREFIX = config(
+            'METHODS_PREFIX', default=self.METHODS_PREFIX
+        )
+        self.METHODS_SUFFIX = config(
+            'METHODS_SUFFIX', default=self.METHODS_SUFFIX
+        )
 
         self.instance_id = ulid.new().str
         self.health_check_topic = f'system.app.{self.APP_NAME}.alive'
@@ -57,21 +65,23 @@ class WampApp(ApplicationSession):
         pass
 
     def onOpen(self, *args, **kwargs):
-        print('Opened.')
+        logger.info('Opened.')
         super().onOpen(*args, **kwargs)
 
     def onWelcome(self, *args, **kwargs):
-        print('Welcome message received.')
+        logger.info('Welcome message received.')
         super().onWelcome(*args, **kwargs)
 
     def onConnect(self):
-        print("Client session connected. Starting WAMP-Ticket authentication on realm '{}' as principal '{}' ..".format(
-            self.config.realm, self.PRINCIPAL)
+        logger.info("Connected")
+        logger.info(
+            f"Authenticating on realm '{self.config.realm}' "
+            f"as principal '{self.PRINCIPAL}'"
         )
         self.join(self.config.realm, [u"ticket"], self.PRINCIPAL)
 
     def onUserError(self, *args, **kwargs):
-        print('onUserError:', args, ';', kwargs)
+        logger.error('onUserError:', args, ';', kwargs)
         return super().onUserError(*args, **kwargs)
 
     async def afterJoin(self):
@@ -94,42 +104,21 @@ class WampApp(ApplicationSession):
         return methods_names
 
     async def onJoin(self, details):
-        last_exception = None
-        for counter in range(0, 3):
-            if counter > 0:
-                await asyncio.sleep(5)
-
-            try:
-                methods_names = await self.register_methods()
-            except ApplicationError as e:
-                last_exception = e
-                continue
-            else:
-                methods_names_str = '|'.join(methods_names)
-                print(f"All methods registered: {methods_names_str}")
-                break
-        else:
-            print(f"Could not register some methods: {last_exception}")
+        try:
+            methods_names = await self.register_methods()
+        except ApplicationError as ex:
+            logger.error(f"Could not register some methods: {ex}")
             self.exit_status = 10
             self.disconnect()
             return
+        else:
+            methods_names_str = '|'.join(methods_names)
+            logger.info(f"All methods registered: {methods_names_str}")
 
         self.loop = asyncio.get_event_loop()
 
         await self.afterJoin()
-
-        while True:
-            try:
-                await self.process_parallel_queue()
-            except Exception as ex:
-                eclass, e, etrace = sys.exc_info()
-                efile, eline, efunc, esource = traceback.extract_tb(etrace)[-1]
-                tb = ''.join(traceback.format_tb(etrace))
-
-                log_entry = f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
-                self.log_error(log_entry)
-
-            await asyncio.sleep(5)
+        asyncio.ensure_future(self.process_tasks_queue())
 
     async def send_health_check_signal(self):
         if self.APP_NAME:
@@ -139,9 +128,9 @@ class WampApp(ApplicationSession):
                 'alive': True
             })
 
-    async def process_parallel_queue(self):
-
+    async def process_tasks_queue(self):
         counter = 0
+
         async def _get_next_method_and_process():
             nonlocal counter
 
@@ -150,8 +139,8 @@ class WampApp(ApplicationSession):
                 await self.send_health_check_signal()
                 counter = 0
 
-            method, args, kwargs = await self.tasks_queue.get()
-            await method(*args, **kwargs)
+            coroutine = await self.tasks_queue.get()
+            await coroutine
 
         while True:
             try:
@@ -161,25 +150,36 @@ class WampApp(ApplicationSession):
                 efile, eline, efunc, esource = traceback.extract_tb(etrace)[-1]
                 tb = ''.join(traceback.format_tb(etrace))
 
-                log_entry = f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
+                log_entry = (
+                    f'{eclass}/{ex}: {efile}, line {eline} on {efunc}: {tb}'
+                )
                 self.log_error(log_entry)
 
     def log_error(self, message):
-        print(message)
+        logger.error(message)
         self.publish('sys.errors', {'message': message})
 
-    async def parallel_process(self, method, *args, **kwargs):
-        task_data = (method, args, kwargs)
-        await self.tasks_queue.put(task_data)
+    async def enqueue_task(self, coroutine):
+        await self.tasks_queue.put(coroutine)
 
-    def sync_parallel_process(self, method, *args, **kwargs):
-        task_data = (method, args, kwargs)
-        self.tasks_queue.put_nowait(task_data)
+    def sync_enqueue_task(self, coroutine):
+        self.tasks_queue.put_nowait(coroutine)
+
+    async def async_publish(self, topic, message):
+        coroutine = self._async_publish(topic, message)
+        await self.enqueue_task(coroutine)
+
+    async def _async_publish(self, topic, message):
+        return super().publish(topic, message)
+
+    def publish(self, topic, message):
+        coroutine = self._async_publish(topic, message)
+        self.sync_enqueue_task(coroutine)
 
     def onChallenge(self, challenge):
         secret = config('WAMPYSECRET')
         if challenge.method == u"ticket":
-            print("WAMP-Ticket challenge received: {}".format(challenge))
+            logger.info("WAMP-Ticket challenge received: {}".format(challenge))
             return secret
         elif challenge.method == u"wampcra":
             return compute_wcs(secret, challenge.extra['challenge'])
@@ -189,17 +189,17 @@ class WampApp(ApplicationSession):
     def onLeave(self, *args, **kwargs):
         # 1 - leave
         super().onLeave(*args, **kwargs)
-        print('Left.')
+        logger.info('Left.')
 
     def onDisconnect(self):
         # 2- disconnect
         super().onDisconnect()
-        print("Disconnected.")
+        logger.info("Disconnected.")
 
     def onClose(self, *args, **kwargs):
         # 3- close
         super().onClose(*args, **kwargs)
-        print('Closed.')
+        logger.info('Closed.')
         sys.exit(self.exit_status)
 
     @classmethod
@@ -212,7 +212,7 @@ class WampApp(ApplicationSession):
         try:
             runner.run(cls)
         except OSError as ex:
-            print('OSError:', ex)
+            logger.error('OSError:', ex)
             sys.exit(100)
 
     async def async_run(self, function, *args, **kwargs):
