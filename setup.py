@@ -18,7 +18,7 @@ setup(
     long_description="",
     author='Cléber Zavadniak',
     author_email='contato@cleber.solutions',
-    url='https://github.com/cleber-solutions/pyWAMPBaseApp',
+    url='https://github.com/lastPlanr/pyWAMPBaseApp',
     license=license,
     packages=['wampbaseapp'],
     package_data={'': ['AUTHORS.md', 'README.md']},

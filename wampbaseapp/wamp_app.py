@@ -177,7 +177,7 @@ class WampApp(ApplicationSession):
         self.sync_enqueue_task(coroutine)
 
     def onChallenge(self, challenge):
-        secret = config('WAMPYSECRET')
+        secret = config('WAMP_SECRET')
         if challenge.method == u"ticket":
             logger.info("WAMP-Ticket challenge received: {}".format(challenge))
             return secret
