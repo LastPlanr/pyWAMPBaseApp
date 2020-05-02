@@ -16,10 +16,10 @@ class App:
     async def call(self, method_name, *args, **kwargs):
         return await self.wamp_app.call(method_name, *args, **kwargs)
 
-    def publish(self, message, topic=None):
+    def publish(self, message, topic=None, options=None):
         topic = topic or self.topic
         if topic:
-            self.wamp_app.publish(topic, message)
+            self.wamp_app.publish(topic, message, {}, options)
 
     def advance_progress_print(self, step_name=None):
         print(self.current_step, self.total_steps_count, step_name or '')
