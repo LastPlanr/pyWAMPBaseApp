@@ -165,15 +165,15 @@ class WampApp(ApplicationSession):
     def sync_enqueue_task(self, coroutine):
         self.tasks_queue.put_nowait(coroutine)
 
-    async def async_publish(self, topic, message):
-        coroutine = self._async_publish(topic, message)
+    async def async_publish(self, topic, args, kwargs, options):
+        coroutine = self._async_publish(topic, args, kwargs, options)
         await self.enqueue_task(coroutine)
 
-    async def _async_publish(self, topic, message):
-        return super().publish(topic, message)
+    async def _async_publish(self, topic, args, kwargs, options):
+        return super().publish(topic, args, kwargs, options)
 
-    def publish(self, topic, message):
-        coroutine = self._async_publish(topic, message)
+    def publish(self, topic, args, kwargs, options):
+        coroutine = self._async_publish(topic, args, kwargs, options)
         self.sync_enqueue_task(coroutine)
 
     def onChallenge(self, challenge):
