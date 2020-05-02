@@ -172,10 +172,6 @@ class WampApp(ApplicationSession):
     async def _async_publish(self, topic, args, kwargs, options):
         return super().publish(topic, args, kwargs, options)
 
-    def publish(self, topic, args, kwargs, options):
-        coroutine = self._async_publish(topic, args, kwargs, options)
-        self.sync_enqueue_task(coroutine)
-
     def onChallenge(self, challenge):
         secret = config('WAMP_SECRET')
         if challenge.method == u"ticket":
