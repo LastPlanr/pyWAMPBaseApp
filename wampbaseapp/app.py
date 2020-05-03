@@ -1,5 +1,3 @@
-from autobahn.wamp.types import SubscribeOptions
-
 class App:
     def __init__(self, wamp_app, *args, **kwargs):
         self.wamp_app = wamp_app
@@ -22,17 +20,6 @@ class App:
         topic = topic or self.topic
         if topic:
             self.wamp_app.publish(topic, message, {}, options)
-
-    def subscribe(self, handler, topic):
-        print('subscribe:', handler, topic)
-
-        options = {'details_arg': 'details'}
-        if topic.endswith('.*'):
-            options['match'] = 'prefix'
-        elif '..' in topic:
-            options['match'] = 'wildcard'
-
-        self.wamp_app.subscribe(handler, topic, options=SubscribeOptions(**options))
 
     def advance_progress_print(self, step_name=None):
         print(self.current_step, self.total_steps_count, step_name or '')

@@ -5,6 +5,7 @@ import logging
 import sys
 import traceback
 
+from autobahn.wamp.types import SubscribeOptions
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp.auth import compute_wcs
 from autobahn.wamp.types import RegisterOptions
@@ -171,6 +172,18 @@ class WampApp(ApplicationSession):
 
     async def _async_publish(self, topic, args, kwargs, options):
         return super().publish(topic, args, kwargs, options)
+
+    def subscribe(self, handler, topic, options=None):
+        print('subscribe:', handler, topic)
+
+        if options == None:
+            options = {'details_arg': 'details'}
+            if topic.endswith('.*'):
+                options['match'] = 'prefix'
+            elif '..' in topic:
+                options['match'] = 'wildcard'
+
+        super().subscribe(handler, topic, options=SubscribeOptions(**options))
 
     def onChallenge(self, challenge):
         secret = config('WAMP_SECRET')
